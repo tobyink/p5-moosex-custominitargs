@@ -1,0 +1,9 @@
+# This file provides instructions for packaging.
+
+`MooseX-CustomInitArgs`
+	perl_version_from m`MooseX::CustomInitArgs`;
+	version_from      m`MooseX::CustomInitArgs`;
+	readme_from       m`MooseX::CustomInitArgs`;
+	test_requires     p`Test::More 0.61` ;
+	.
+
