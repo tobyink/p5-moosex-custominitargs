@@ -13,7 +13,6 @@ my $init;
 	
 	has foo => (
 		is        => 'ro',
-		traits    => [CustomInitArgs],
 		init_args => [
 			'fu',
 			'comfute' => sub { $_ },
@@ -76,7 +75,6 @@ my $wrongness = q{
 	
 	has foo => (
 		is        => 'ro',
-		traits    => [CustomInitArgs],
 		init_arg  => undef,
 		init_args => [
 			'fu',

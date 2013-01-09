@@ -1,17 +1,19 @@
 package MooseX::CustomInitArgs;
 
-BEGIN {
-	$MooseX::CustomInitArgs::AUTHORITY = 'cpan:TOBYINK';
-	$MooseX::CustomInitArgs::VERSION   = '0.001';
-}
+our $AUTHORITY = 'cpan:TOBYINK';
+our $VERSION   = '0.001';
 
 use 5.008;
 use strict;
 use warnings;
 use Moose::Exporter;
 
-use constant CustomInitArgs => do {
+use constant _AttrTrait => do
+{
 	package MooseX::CustomInitArgs::Trait::Attribute;
+	our $AUTHORITY = 'cpan:TOBYINK';
+	our $VERSION   = '0.001';
+	
 	use Moose::Role;
 	use Moose::Util::TypeConstraints;
 	use B 'perlstring';
@@ -144,8 +146,12 @@ use constant CustomInitArgs => do {
 	__PACKAGE__;
 };
 
-use constant _ClassTrait => do {
+use constant _ClassTrait => do
+{
 	package MooseX::CustomInitArgs::Trait::Class;
+	our $AUTHORITY = 'cpan:TOBYINK';
+	our $VERSION   = '0.001';
+	
 	use Moose::Role;
 	
 	has _mxcia_hash => (
@@ -160,7 +166,7 @@ use constant _ClassTrait => do {
 		my $self = shift;
 		return +{
 			map  { ;$_->name => $_ }
-			grep { ;$_->can('does') && $_->does('MooseX::CustomInitArgs::Trait::Attribute') }
+			grep { ;$_->can('does') && $_->does(MooseX::CustomInitArgs::_AttrTrait) }
 			$self->get_all_attributes
 		};
 	}
@@ -182,7 +188,7 @@ use constant _ClassTrait => do {
 		
 		return $self->$orig(@_)
 			unless $attr->can('does')
-			&&     $attr->does('MooseX::CustomInitArgs::Trait::Attribute')
+			&&     $attr->does(MooseX::CustomInitArgs::_AttrTrait)
 			&&     $attr->has_init_args;
 		
 		return (
@@ -194,8 +200,12 @@ use constant _ClassTrait => do {
 	__PACKAGE__;
 };
 
-use constant _ApplicationToClassTrait => do {
+use constant _ApplicationToClassTrait => do
+{
 	package MooseX::CustomInitArgs::Trait::Application::ToClass;
+	our $AUTHORITY = 'cpan:TOBYINK';
+	our $VERSION   = '0.001';
+	
 	use Moose::Role;
 
 	around apply => sub
@@ -216,12 +226,13 @@ use constant _ApplicationToClassTrait => do {
 };
 
 Moose::Exporter->setup_import_methods(
-	as_is           => ['CustomInitArgs'],
 	class_metaroles => {
-		class => [ _ClassTrait ],
+		class     => [ _ClassTrait ],
+		attribute => [ _AttrTrait ],
 	},
 	role_metaroles => {
 		application_to_class => [ _ApplicationToClassTrait ],
+		applied_attribute    => [ _AttrTrait ],
 	},
 );
 
@@ -240,7 +251,6 @@ MooseX::CustomInitArgs - define multiple init args with custom processing
       use MooseX::CustomInitArgs;
       
       has radius => (
-         traits    => [ CustomInitArgs ],
          is        => 'ro',
          isa       => 'Num',
          required  => 1,
@@ -257,6 +267,8 @@ MooseX::CustomInitArgs - define multiple init args with custom processing
    my $circle = Circle->new(diameter => 2);
 
 =head1 DESCRIPTION
+
+
 
 =head1 BUGS
 

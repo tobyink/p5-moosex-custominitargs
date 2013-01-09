@@ -12,7 +12,6 @@ my $init;
 	
 	has foo => (
 		is        => 'ro',
-		traits    => [CustomInitArgs],
 		init_args => [
 			'fu',
 			'comfute' => \'_init_comfute',

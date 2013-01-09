@@ -10,7 +10,6 @@ use Test::More;
 	
 	has foo => (
 		is        => 'ro',
-		traits    => [CustomInitArgs],
 		init_args => ['fu', 'comfute' => sub { $_ }],
 	);
 }
