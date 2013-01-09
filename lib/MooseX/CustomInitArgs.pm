@@ -44,6 +44,20 @@ use constant CustomInitArgs => do {
 		},
 	);
 	
+	around new => sub
+	{
+		my $orig  = shift;
+		my $class = shift;
+		my $self  = $class->$orig(@_);
+		
+		if ($self->has_init_args and not $self->has_init_arg)
+		{
+			confess "Attribute ${\$self->name} defined with init_args but no init_arg";
+		}
+		
+		return $self;
+	};
+	
 	sub _inline_param_negotiation
 	{
 		my ($self, $param) = @_;
@@ -56,14 +70,14 @@ use constant CustomInitArgs => do {
 		return (
 			"if (my \@supplied = grep /^(?:$regex)\$/, keys \%${param}) {",
 			'  if (@supplied > 1) {',
-			'    Carp::confess("Conflicting init_args: (@supplied)");',
+			'    Carp::confess("Conflicting init_args (@{[join q(, ), sort @supplied]})");',
 			'  }',
 			"  elsif (grep /^(?:$no_coderef)\$/, \@supplied) { ",
 			"    ${param}->{${\perlstring $self->init_arg}} = delete ${param}->{\$supplied[0]};",
 			"  }",
 			"  elsif (grep /^($with_coderef)\$/, \@supplied) { ",
 			"    local \$_ = delete ${param}->{\$supplied[0]};",
-			"    ${param}->{${\perlstring $self->init_arg}} = \$MxCIA_attrs{${\$self->name}}->_run_init_coderef(\$supplied[0], \$_);",
+			"    ${param}->{${\perlstring $self->init_arg}} = \$MxCIA_attrs{${\$self->name}}->_run_init_coderef(\$supplied[0], \$class, \$_);",
 			"  }",
 			"}",
 		);
@@ -71,8 +85,12 @@ use constant CustomInitArgs => do {
 	
 	sub _run_init_coderef
 	{
-		my ($self, $arg, $value) = @_;
-		$self->_init_args_hashref->{$arg}($value);
+		my ($self, $arg, $class, $value) = @_;
+		
+		my $code = $self->_init_args_hashref->{$arg};
+		ref $code eq 'SCALAR' and $code = $$code;
+		
+		$class->$code($value);
 	}
 	
 	around initialize_instance_slot => sub
@@ -87,7 +105,7 @@ use constant CustomInitArgs => do {
 		my @supplied = grep { exists $params->{$_->[0]} } @{$self->init_args}
 			or return $self->$orig(@_);
 		
-		if ($self->has_init_arg and exists $params->{$self->init_arg})
+		if (exists $params->{$self->init_arg})
 		{
 			push @supplied, [ $self->init_arg => undef ];
 		}
@@ -95,18 +113,20 @@ use constant CustomInitArgs => do {
 		if (@supplied > 1)
 		{
 			confess sprintf(
-				'Conflicting init_args: (%s)',
-				join(', ', map $_->[0], @supplied)
+				'Conflicting init_args (%s)',
+				join(', ', sort map $_->[0], @supplied)
 			);
 		}
 		
-		if (my $coderef = $supplied[0][1])
+		if (my $code = $supplied[0][1])
 		{
+			ref $code eq 'SCALAR' and $code = $$code;
+			
 			local $_ = delete $params->{ $supplied[0][0] };
 			$self->_set_initial_slot_value(
 				$meta_instance, 
 				$instance, 
-				$instance->$coderef($_),
+				$instance->$code($_),
 			);
 		}
 		else
@@ -140,7 +160,7 @@ use constant _ClassTrait => do {
 		my $self = shift;
 		return +{
 			map  { ;$_->name => $_ }
-			grep { ;$_->does('MooseX::CustomInitArgs::Trait::Attribute') }
+			grep { ;$_->can('does') && $_->does('MooseX::CustomInitArgs::Trait::Attribute') }
 			$self->get_all_attributes
 		};
 	}
@@ -161,7 +181,9 @@ use constant _ClassTrait => do {
 		my ($attr, $idx) = @_;
 		
 		return $self->$orig(@_)
-			unless $attr->does('MooseX::CustomInitArgs::Trait::Attribute') && $attr->has_init_args;
+			unless $attr->can('does')
+			&&     $attr->does('MooseX::CustomInitArgs::Trait::Attribute')
+			&&     $attr->has_init_args;
 		
 		return (
 			$attr->_inline_param_negotiation('$params'),
@@ -172,9 +194,35 @@ use constant _ClassTrait => do {
 	__PACKAGE__;
 };
 
+use constant _ApplicationToClassTrait => do {
+	package MooseX::CustomInitArgs::Trait::Application::ToClass;
+	use Moose::Role;
+
+	around apply => sub
+	{
+		my $orig = shift;
+		my $self = shift;
+		my ($role, $class) = @_;
+		$class = Moose::Util::MetaRole::apply_metaroles(
+			for             => $class->name,
+			class_metaroles => {
+				class => [MooseX::CustomInitArgs::_ClassTrait],
+			},
+		);
+		$self->$orig($role, $class);
+	};
+	
+	__PACKAGE__;
+};
+
 Moose::Exporter->setup_import_methods(
 	as_is           => ['CustomInitArgs'],
-	class_metaroles => { class => [ _ClassTrait ] },
+	class_metaroles => {
+		class => [ _ClassTrait ],
+	},
+	role_metaroles => {
+		application_to_class => [ _ApplicationToClassTrait ],
+	},
 );
 
 1;
@@ -227,7 +275,6 @@ This software is copyright (c) 2013 by Toby Inkster.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.
-
 
 =head1 DISCLAIMER OF WARRANTIES
 
