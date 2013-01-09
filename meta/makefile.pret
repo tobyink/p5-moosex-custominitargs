@@ -4,6 +4,8 @@
 	perl_version_from m`MooseX::CustomInitArgs`;
 	version_from      m`MooseX::CustomInitArgs`;
 	readme_from       m`MooseX::CustomInitArgs`;
-	test_requires     p`Test::More 0.61` ;
-	.
+	requires          p`Data::OptList 0`;
+	requires          p`Moose 2.00`;
+	test_requires     p`Test::Fatal 0`;
+.
 
