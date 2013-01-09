@@ -33,8 +33,48 @@ check [comfute => 42], 'mutable class; alternative init arg (with coderef)';
 
 Bar->meta->make_immutable;
 
-check [foo     => 42], 'immutable subclass; standard init arg';
-check [fu      => 42], 'immutable subclass; alternative init arg';
-check [comfute => 42], 'immutable subclass; alternative init arg (with coderef)';
+check [foo     => 42], 'immutable class; standard init arg';
+check [fu      => 42], 'immutable class; alternative init arg';
+check [comfute => 42], 'immutable class; alternative init arg (with coderef)';
+
+{
+	package Quux1;
+	use Moose::Role;
+	with 'Foo';
+}
+
+{
+	package Quux2;
+	use Moose::Role;
+	with 'Quux1';
+}
+
+{
+	package Quux3;
+	use Moose::Role;
+	with 'Quux2';
+}
+
+{
+	package Baz;
+	use Moose;
+	with 'Quux3';
+}
+
+sub checkz ($$)
+{
+	my ($args, $name) = @_;
+	is(Baz->new(@$args)->foo, 99, "$name");
+}
+
+checkz [foo     => 99], 'mutable class, indirected through role chain; standard init arg';
+checkz [fu      => 99], 'mutable class, indirected through role chain; alternative init arg';
+checkz [comfute => 99], 'mutable class, indirected through role chain; alternative init arg (with coderef)';
+
+Baz->meta->make_immutable;
+
+checkz [foo     => 99], 'immutable class, indirected through role chain; standard init arg';
+checkz [fu      => 99], 'immutable class, indirected through role chain; alternative init arg';
+checkz [comfute => 99], 'immutable class, indirected through role chain; alternative init arg (with coderef)';
 
 done_testing;

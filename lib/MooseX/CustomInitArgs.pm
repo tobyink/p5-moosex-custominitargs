@@ -166,7 +166,7 @@ use constant _ClassTrait => do
 		my $self = shift;
 		return +{
 			map  { ;$_->name => $_ }
-			grep { ;$_->can('does') && $_->does(MooseX::CustomInitArgs::_AttrTrait) }
+			grep { ;$_->can('does') && $_->does(MooseX::CustomInitArgs->_AttrTrait) }
 			$self->get_all_attributes
 		};
 	}
@@ -188,7 +188,7 @@ use constant _ClassTrait => do
 		
 		return $self->$orig(@_)
 			unless $attr->can('does')
-			&&     $attr->does(MooseX::CustomInitArgs::_AttrTrait)
+			&&     $attr->does(MooseX::CustomInitArgs->_AttrTrait)
 			&&     $attr->has_init_args;
 		
 		return (
@@ -216,10 +216,36 @@ use constant _ApplicationToClassTrait => do
 		$class = Moose::Util::MetaRole::apply_metaroles(
 			for             => $class->name,
 			class_metaroles => {
-				class => [MooseX::CustomInitArgs::_ClassTrait],
+				class => [MooseX::CustomInitArgs->_ClassTrait],
 			},
 		);
 		$self->$orig($role, $class);
+	};
+	
+	__PACKAGE__;
+};
+
+use constant _ApplicationToRoleTrait => do
+{
+	package MooseX::CustomInitArgs::Trait::Application::ToClass;
+	our $AUTHORITY = 'cpan:TOBYINK';
+	our $VERSION   = '0.001';
+	
+	use Moose::Role;
+
+	around apply => sub
+	{
+		my $orig = shift;
+		my $self = shift;
+		my ($role, $role2) = @_;
+		$role2 = Moose::Util::MetaRole::apply_metaroles(
+			for             => $role2->name,
+			role_metaroles => {
+				application_to_class => [ MooseX::CustomInitArgs->_ApplicationToClassTrait ],
+				application_to_role  => [ MooseX::CustomInitArgs->_ApplicationToRoleTrait ],
+			},
+		);
+		$self->$orig($role, $role2);
 	};
 	
 	__PACKAGE__;
@@ -232,6 +258,7 @@ Moose::Exporter->setup_import_methods(
 	},
 	role_metaroles => {
 		application_to_class => [ _ApplicationToClassTrait ],
+		application_to_role  => [ _ApplicationToRoleTrait ],
 		applied_attribute    => [ _AttrTrait ],
 	},
 );
@@ -255,8 +282,8 @@ MooseX::CustomInitArgs - define multiple init args with custom processing
          isa       => 'Num',
          required  => 1,
          init_args => [
-            r        => undef,
-            diameter => sub { $_ / 2 },
+            'r',
+            'diameter' => sub { $_ / 2 },
          ],
       );
    }
@@ -268,7 +295,43 @@ MooseX::CustomInitArgs - define multiple init args with custom processing
 
 =head1 DESCRIPTION
 
+C<MooseX::CustomInitArgs> allows Moose attributes to be initialized from
+alternative initialization arguments. If you find yourself wishing that
+Moose's built-in C<init_arg> option took an arrayref, then this is what
+you want.
 
+L<MooseX::MultiInitArg> also does this, but C<MooseX::CustomInitArgs> has
+an additional feature: it can optionally pre-process each initialization
+argument. This happens prior to type coercian and constraint checks.
+
+(Also at the time of writing, C<MooseX::MultiInitArg> suffers from a bug
+where it breaks when a class is immutablized.)
+
+The constructor cannot be called with multiple initialization arguments
+for the same attribute. Given the class in the example, this would throw
+an error:
+
+   my $circle = Circle->new(radius => 1, diameter => 100);
+
+The following would also throw an error, even though it's slightly more
+sensible:
+
+   my $circle = Circle->new(radius => 1, diameter => 2);
+
+The C<init_args> attribute option is conceptually a hash mapping
+initialization argument names to methods which pre-process them. The methods
+can be given as coderefs, or the names of class methods as strings (or scalar
+refs).
+
+You can provide this hash mapping as an actual hashref, or (as in the
+L</SYNOPSIS>) as an arrayref suitable for input to L<Data::OptList>. In either
+case it will be coerced to C<MooseX::CustomInitArgs>'s internal representation
+which is a C<Data::OptList>-style arrayref of arrayrefs.
+
+=head1 CAVEATS
+
+C<init_args> cannot be used on attributes with C<< init_arg => undef >>.
+C<MooseX::CustomInitArgs> will throw an error if you do.
 
 =head1 BUGS
 
@@ -276,6 +339,8 @@ Please report any bugs to
 L<http://rt.cpan.org/Dist/Display.html?Queue=MooseX-CustomInitArgs>.
 
 =head1 SEE ALSO
+
+L<MooseX::MultiInitArg>, L<MooseX::FunkyAttributes>.
 
 =head1 AUTHOR
 
