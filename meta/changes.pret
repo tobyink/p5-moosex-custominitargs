@@ -4,3 +4,8 @@
 	issued  2013-01-09;
 	label   "Initial release".
 
+`MooseX-CustomInitArgs 0.002 cpan:TOBYINK`
+	issued  2013-01-09;
+	changeset [
+		item "Combine MooseX::CustomInitArgs::Trait::Application::ToClass and MooseX::CustomInitArgs::Trait::Application::ToRole traits into a single MooseX::CustomInitArgs::Trait::Application trait."^^Change;
+	].

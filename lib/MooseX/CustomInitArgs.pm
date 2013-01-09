@@ -1,7 +1,7 @@
 package MooseX::CustomInitArgs;
 
 our $AUTHORITY = 'cpan:TOBYINK';
-our $VERSION   = '0.001';
+our $VERSION   = '0.002';
 
 use 5.008;
 use strict;
@@ -12,7 +12,7 @@ use constant _AttrTrait => do
 {
 	package MooseX::CustomInitArgs::Trait::Attribute;
 	our $AUTHORITY = 'cpan:TOBYINK';
-	our $VERSION   = '0.001';
+	our $VERSION   = '0.002';
 	
 	use Moose::Role;
 	use Moose::Util::TypeConstraints;
@@ -150,7 +150,7 @@ use constant _ClassTrait => do
 {
 	package MooseX::CustomInitArgs::Trait::Class;
 	our $AUTHORITY = 'cpan:TOBYINK';
-	our $VERSION   = '0.001';
+	our $VERSION   = '0.002';
 	
 	use Moose::Role;
 	
@@ -200,11 +200,11 @@ use constant _ClassTrait => do
 	__PACKAGE__;
 };
 
-use constant _ApplicationToClassTrait => do
+use constant _ApplicationTrait => do
 {
-	package MooseX::CustomInitArgs::Trait::Application::ToClass;
+	package MooseX::CustomInitArgs::Trait::Application;
 	our $AUTHORITY = 'cpan:TOBYINK';
-	our $VERSION   = '0.001';
+	our $VERSION   = '0.002';
 	
 	use Moose::Role;
 
@@ -212,40 +212,18 @@ use constant _ApplicationToClassTrait => do
 	{
 		my $orig = shift;
 		my $self = shift;
-		my ($role, $class) = @_;
-		$class = Moose::Util::MetaRole::apply_metaroles(
-			for             => $class->name,
+		my ($role, $applied_to) = @_;
+		$applied_to = Moose::Util::MetaRole::apply_metaroles(
+			for             => $applied_to->name,
 			class_metaroles => {
-				class => [MooseX::CustomInitArgs->_ClassTrait],
+				class                => [ MooseX::CustomInitArgs->_ClassTrait ],
+			},
+			role_metaroles  => {
+				application_to_class => [ MooseX::CustomInitArgs->_ApplicationTrait ],
+				application_to_role  => [ MooseX::CustomInitArgs->_ApplicationTrait ],
 			},
 		);
-		$self->$orig($role, $class);
-	};
-	
-	__PACKAGE__;
-};
-
-use constant _ApplicationToRoleTrait => do
-{
-	package MooseX::CustomInitArgs::Trait::Application::ToClass;
-	our $AUTHORITY = 'cpan:TOBYINK';
-	our $VERSION   = '0.001';
-	
-	use Moose::Role;
-
-	around apply => sub
-	{
-		my $orig = shift;
-		my $self = shift;
-		my ($role, $role2) = @_;
-		$role2 = Moose::Util::MetaRole::apply_metaroles(
-			for             => $role2->name,
-			role_metaroles => {
-				application_to_class => [ MooseX::CustomInitArgs->_ApplicationToClassTrait ],
-				application_to_role  => [ MooseX::CustomInitArgs->_ApplicationToRoleTrait ],
-			},
-		);
-		$self->$orig($role, $role2);
+		$self->$orig($role, $applied_to);
 	};
 	
 	__PACKAGE__;
@@ -257,8 +235,8 @@ Moose::Exporter->setup_import_methods(
 		attribute => [ _AttrTrait ],
 	},
 	role_metaroles => {
-		application_to_class => [ _ApplicationToClassTrait ],
-		application_to_role  => [ _ApplicationToRoleTrait ],
+		application_to_class => [ _ApplicationTrait ],
+		application_to_role  => [ _ApplicationTrait ],
 		applied_attribute    => [ _AttrTrait ],
 	},
 );
