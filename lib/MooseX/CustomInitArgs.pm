@@ -126,16 +126,16 @@ use constant _AttrTrait => do
 			
 			local $_ = delete $params->{ $supplied[0][0] };
 			$self->_set_initial_slot_value(
-				$meta_instance, 
-				$instance, 
+				$meta_instance,
+				$instance,
 				$instance->$code($_),
 			);
 		}
 		else
 		{
 			$self->_set_initial_slot_value(
-				$meta_instance, 
-				$instance, 
+				$meta_instance,
+				$instance,
 				delete $params->{$supplied[0][0]},
 			);
 		}
