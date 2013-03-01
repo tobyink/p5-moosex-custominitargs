@@ -9,3 +9,10 @@
 	changeset [
 		item "Combine MooseX::CustomInitArgs::Trait::Application::ToClass and MooseX::CustomInitArgs::Trait::Application::ToRole traits into a single MooseX::CustomInitArgs::Trait::Application trait."^^Change;
 	].
+
+`MooseX-CustomInitArgs 0.003 cpan:TOBYINK`
+	issued  2013-03-01;
+	changeset [
+		item "Add before_typecheck and after_typecheck helper functions, and introduce the feature where type constraints and coercions can be optionally performed before coderefs are executed."^^Addition;
+		item "Reduce possibility of divergence between mutable and immutable code paths by making the mutable code path call the _run_init_code method designed for the immutable path."^^Change;
+	].
