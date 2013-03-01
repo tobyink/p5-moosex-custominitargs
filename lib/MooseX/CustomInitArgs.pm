@@ -325,6 +325,14 @@ which is a C<Data::OptList>-style arrayref of arrayrefs.
 
 =head2 Interaction with type constraints and coercion
 
+=begin trustme
+
+=item before_typecheck
+
+=item after_typecheck
+
+=end trustme
+
 Normally, custom init arg coderefs run I<before> the value has been through
 type constraint checks and coercions. This allows the coderef to massage
 the value into passing its type constraint checks.
