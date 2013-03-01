@@ -78,8 +78,8 @@ use constant _AttrTrait => do
 			"    ${param}->{${\perlstring $self->init_arg}} = delete ${param}->{\$supplied[0]};",
 			"  }",
 			"  elsif (grep /^($with_coderef)\$/, \@supplied) { ",
-			"    local \$_ = delete ${param}->{\$supplied[0]};",
-			"    ${param}->{${\perlstring $self->init_arg}} = \$MxCIA_attrs{${\$self->name}}->_run_init_coderef(\$supplied[0], \$class, \$_);",
+			"    my \$x = delete ${param}->{\$supplied[0]};",
+			"    ${param}->{${\perlstring $self->init_arg}} = \$MxCIA_attrs{${\$self->name}}->_run_init_coderef(\$supplied[0], \$class, \$x);",
 			"  }",
 			"}",
 		);
@@ -92,6 +92,17 @@ use constant _AttrTrait => do
 		my $code = $self->_init_args_hashref->{$arg};
 		ref $code eq 'SCALAR' and $code = $$code;
 		
+		if (ref $code eq "MooseX::CustomInitArgs::Sub::AfterTC")
+		{
+			if ($self->should_coerce) {
+				$value = $self->type_constraint->assert_coerce($value);
+			}
+			else {
+				$self->type_constraint->assert_valid($value);
+			}
+		}
+		
+		local $_ = $value;
 		$class->$code($value);
 	}
 	
@@ -120,15 +131,12 @@ use constant _AttrTrait => do
 			);
 		}
 		
-		if (my $code = $supplied[0][1])
+		if ($supplied[0][1])
 		{
-			ref $code eq 'SCALAR' and $code = $$code;
-			
-			local $_ = delete $params->{ $supplied[0][0] };
 			$self->_set_initial_slot_value(
 				$meta_instance,
 				$instance,
-				$instance->$code($_),
+				$self->_run_init_coderef($supplied[0][0], $instance, delete $params->{ $supplied[0][0] }),
 			);
 		}
 		else
@@ -229,7 +237,16 @@ use constant _ApplicationTrait => do
 	__PACKAGE__;
 };
 
+sub after_typecheck (&) {
+	bless $_[0], "MooseX::CustomInitArgs::Sub::AfterTC";
+}
+
+sub before_typecheck (&) { $_[0] }
+
 Moose::Exporter->setup_import_methods(
+	as_is => [
+		qw( before_typecheck after_typecheck )
+	],
 	class_metaroles => {
 		class     => [ _ClassTrait ],
 		attribute => [ _AttrTrait ],
@@ -305,6 +322,25 @@ You can provide this hash mapping as an actual hashref, or (as in the
 L</SYNOPSIS>) as an arrayref suitable for input to L<Data::OptList>. In either
 case it will be coerced to C<MooseX::CustomInitArgs>'s internal representation
 which is a C<Data::OptList>-style arrayref of arrayrefs.
+
+=head2 Interaction with type constraints and coercion
+
+Normally, custom init arg coderefs run I<before> the value has been through
+type constraint checks and coercions. This allows the coderef to massage
+the value into passing its type constraint checks.
+
+However, if you wish to run type constraint checks before the coderef,
+use the C<after_typecheck> helper:
+
+   init_args => [
+      'r',
+      'diameter' => after_typecheck { $_ / 2 },
+   ],
+
+(There's a corresponding C<before_typecheck> helper for clarity.)
+
+After the coderef has been run, type constraint checks and coercions will
+happen I<again> on the result.
 
 =head1 CAVEATS
 
