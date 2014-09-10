@@ -1,7 +1,7 @@
 package MooseX::CustomInitArgs;
 
 our $AUTHORITY = 'cpan:TOBYINK';
-our $VERSION   = '0.003';
+our $VERSION   = '0.004';
 
 use 5.008;
 use strict;
@@ -12,7 +12,7 @@ use constant _AttrTrait => do
 {
 	package MooseX::CustomInitArgs::Trait::Attribute;
 	our $AUTHORITY = 'cpan:TOBYINK';
-	our $VERSION   = '0.003';
+	our $VERSION   = '0.004';
 	
 	use Moose::Role;
 	use Moose::Util::TypeConstraints;
@@ -158,7 +158,7 @@ use constant _ClassTrait => do
 {
 	package MooseX::CustomInitArgs::Trait::Class;
 	our $AUTHORITY = 'cpan:TOBYINK';
-	our $VERSION   = '0.003';
+	our $VERSION   = '0.004';
 	
 	use Moose::Role;
 	
@@ -212,7 +212,7 @@ use constant _ApplicationTrait => do
 {
 	package MooseX::CustomInitArgs::Trait::Application;
 	our $AUTHORITY = 'cpan:TOBYINK';
-	our $VERSION   = '0.003';
+	our $VERSION   = '0.004';
 	
 	use Moose::Role;
 
